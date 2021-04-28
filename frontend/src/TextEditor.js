@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import { io } from 'socket.io-client'
+import { useParams } from 'react-router-dom'
 
+const SAVE_INTERVAL_MS = 2000
 const TOOLBAR_OPTIONS = [
   [{ header: [1, 2, 3, 4, 5, 6, false] }],
   [{ font: [] }],
@@ -15,6 +17,7 @@ const TOOLBAR_OPTIONS = [
 ]
 
 function TextEditor() {
+  const { id: documentID } = useParams()
   const [socket, setSocket] = useState()
   const [quill, setQuill] = useState()
 
@@ -41,7 +44,32 @@ function TextEditor() {
       }
     })
     setQuill(newQuill)
+    newQuill.disable()
+    newQuill.setText('Loading...')
   }, [])
+
+  useEffect(() => {
+    if (socket == null || quill == null) return
+    
+    socket.emit('get-document', documentID)
+
+    socket.once('load-document', document => {
+      quill.setContents(document)
+      quill.enable()
+    })
+  }, [socket, quill, documentID])
+
+  useEffect(() => {
+    if (socket == null || quill == null) return
+
+    const saveInterval = setInterval(() => {
+      socket.emit('save-document', quill.getContents())
+    }, SAVE_INTERVAL_MS)
+
+    return () => {
+      clearInterval(saveInterval)
+    }
+  }, [socket, quill])
 
   // Setting up text change receiver for quill
   useEffect(() => {
