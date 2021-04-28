@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import { io } from 'socket.io-client'
-import { useParams } from 'react-router-dom'
 
 const SAVE_INTERVAL_MS = 2000
 const TOOLBAR_OPTIONS = [
@@ -21,15 +21,7 @@ function TextEditor() {
   const [socket, setSocket] = useState()
   const [quill, setQuill] = useState()
 
-  useEffect(() => {
-    const newSocket = io('http://localhost:4000')
-
-    setSocket(newSocket)
-    return () => {
-      newSocket.disconnect()
-    }
-  }, [])
-
+  // Reference for editor wrapper
   const editorWrapperRef = useCallback(wrapper => {
     if (wrapper == null) return
 
@@ -45,9 +37,17 @@ function TextEditor() {
     })
     setQuill(newQuill)
     newQuill.disable()
-    newQuill.setText('Loading...')
   }, [])
 
+  // Connecting to SocketIO
+  useEffect(() => {
+    const newSocket = io('http://localhost:4000')
+    setSocket(newSocket)
+
+    return newSocket.disconnect
+  }, [])
+
+  // Retrieving document from DB
   useEffect(() => {
     if (socket == null || quill == null) return
     
@@ -59,6 +59,7 @@ function TextEditor() {
     })
   }, [socket, quill, documentID])
 
+  // Setting up save intervals
   useEffect(() => {
     if (socket == null || quill == null) return
 
@@ -76,7 +77,6 @@ function TextEditor() {
     if (socket == null || quill == null) return
 
     const updateHandler = (delta) => {
-      console.log('Here')
       quill.updateContents(delta)
     }
 
@@ -98,7 +98,6 @@ function TextEditor() {
     }
 
     quill.on('text-change', changeHandler)
-
     return () => {
       quill.off('text-change', changeHandler)
     }

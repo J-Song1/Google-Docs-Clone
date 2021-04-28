@@ -1,6 +1,5 @@
 const mongoose = require('mongoose')
 const Document = require('./Document')
-mongoose.set('useFindAndModify', false);
 
 mongoose.connect('mongodb://localhost/google-docs-clone', {
   useNewUrlParser: true,
@@ -30,22 +29,17 @@ io.on('connection', socket => {
     })
 
     socket.on('save-document', async data => {
-      console.log(data)
       await Document.findByIdAndUpdate(documentID, {data: data}, {useFindAndModify: false})
-
-
-      //await Document.findByIdAndUpdate(documentID, { $set: data }, { useFindAndModify: true })
     })
   })
   
 })
 
+// Function to get existing document or create document with _id = ID
 async function getDocument(ID) {
   if (ID == null) return
 
   const document = await Document.findById(ID)
-
-  console.log(document)
 
   if (document) return document
 
